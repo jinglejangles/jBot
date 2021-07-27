@@ -11,8 +11,8 @@ class FFPlayer():
         self.playerID = playerID
 
     def __str__(self):
-        return str(self.percentile) + ":" + self.job + ":" + self.name + ":" +
-        str(self.dps) + "\n"
+        return str(self.percentile) + ":" + self.job + ":" + self.name + ":" 
+        +str(self.dps) + "\n"
 
     def __eq__(self, other):
         return self.dps == other.dps

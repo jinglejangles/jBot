@@ -9,9 +9,9 @@ from sessionmanager import SessionManager
 
 
 class JangBot(commands.AutoShardedBot):
-    myIntents = discord.Intents.all()  '#'temporary
+    myIntents = discord.Intents.all()  #temporary
     prefix = "??"
-    initial_extensions = ["rngl", "owstats", "finalfantasylog", "admin"]
+    initial_extensions = ["rngl", "owstats", "finalfantasylog", "cogs.admin"]
 
     def __init__(self):
         super().__init__(command_prefix=self.prefix, pm_help=None,

@@ -10,12 +10,12 @@ from yarl import URL
 import re
 import urllib.parse
 from jangle_utils import fetchAPI_response
-from FFPlayer import FFPlayer
-from FFReport import FFReport
 from aiohttp import BasicAuth
 import datetime
 from playerprofile import FFPlayerFight
 import logging
+import util.FFPlayer
+import util.FFReport
 
 
 class finalfantasylog(commands.Cog):

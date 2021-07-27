@@ -22,7 +22,7 @@ class FFReport():
         for x in self.charList:
             printString += str(x)
 
-        printString += "\nHeal Damage:" + str(self.healPercentile) + ':' +
-        str(self.healCombinedDamage) + '\n' + "Tank Damage:" +
-        str(self.tankPercentile) + ":" + str(self.tankCombinedDamage)
+        printString += "\nHeal Damage:" + str(self.healPercentile) + ':' 
+        +str(self.healCombinedDamage) + '\n' + "Tank Damage:" 
+        +str(self.tankPercentile) + ":" + str(self.tankCombinedDamage)
         return printString
