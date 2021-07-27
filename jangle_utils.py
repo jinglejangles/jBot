@@ -48,5 +48,3 @@ async def fetchAPI_response(url,auth,query):
 				print(await r.json())
 				return await r.json()
 
-
-	

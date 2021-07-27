@@ -1,7 +1,5 @@
-import random
 import discord
 from discord.ext import commands
-from discord.ext.commands import Bot, cooldown, BucketType
 from discord.utils import find
 from jangle_utils import fetch_response
 from config import fflogSecret,fflogID,graphQL,testQL,query222,query222dot1,queryReportBase,reportDDD,emojiConvert,xivAnalysisLink,profileQuery
@@ -25,6 +23,7 @@ class finalfantasylog(commands.Cog):
 		self.tokenLink = 'https://www.fflogs.com/oauth/token'
 		self.authToken = ''
 
+	@commands.is_owner()
 	@commands.command(name="api",description="api get", brief="api get" \
 						,pass_context=True,hidden=True)
 	async def api(self,ctx):
@@ -34,9 +33,9 @@ class finalfantasylog(commands.Cog):
 			except Exception as e:
 				print(e)
 				return
-		
 		print(self.authToken)
 		return
+
 
 	@commands.command(name="ff",description="fflogs get",brief="fflogs get" \
 					,pass_context=True)
@@ -51,11 +50,11 @@ class finalfantasylog(commands.Cog):
 								token, try again later")
 				return
 		if len(args)>1:
-			await ctx.send("only one link please")
-			return
+			raise commands.errors.TooManyArguments()
+		if len(args)==0:
+			raise commands.errors.MissingRequiredArgument()
 		if not re.match("https?:\/\/([\w\d]+\.)?fflogs\.com",args[0]):
-			await ctx.send("Not a fflogs link")
-			return
+			raise commands.errors.BadArgument()
 		fLink = URL(args[0])
 		r = ''
 		########################################################################
@@ -75,12 +74,24 @@ class finalfantasylog(commands.Cog):
 				await ctx.send(embed=await self.reportEmbed(r))
 				return
 			else:
-				await ctx.send("Something has gone horribly wrong or your link is bad, dm owner")
+				await ctx.send("Something has gone horribly wrong or your link is bad, message owner")
 		except Exception as e:
 			print(e)
 			await ctx.send(e)
 			return
 
+	@ff.error
+	async def ff_handler(self,ctx,error):
+		if isinstance(error, commands.errors.TooManyArguments):
+			await ctx.send(ctx.author.mention+ "Only one link please")
+		elif isinstance(error,commands.error.MissingRequiredArgument):
+			await ctx.send(ctx.author.mention+ "You forgot the link")
+		elif isinstance(error,commands.errors.BadArgument):
+			await ctx.send(ctx.author.mention+
+						   "You didn't submit a fflogs.com link")
+		else:
+			await ctx.send("Unhandled error caught, dm owner")
+			
 	async def getAPITOKEN(self,ctx):
 			tokenResponse = await fetch_response(self.tokenLink,secret=fflogSecret,id=fflogID,type="POST")
 			print(tokenResponse)
@@ -204,7 +215,6 @@ class finalfantasylog(commands.Cog):
 		return r
 
 	async def trimReportResponse(self,json):
-		#print(type(json))
 		encounterID, fightName, tanks, damage, healers,duration,code,fightID = \
 		None, None, None, None, None, None,None,None
 		speedPercent, executionPercent = None, None
@@ -229,6 +239,7 @@ class finalfantasylog(commands.Cog):
 			print("\n\n")
 			print(type(masterData))
 			print(masterData)
+			#log data for checking later
 		except Exception as e:
 			print(e)
 
