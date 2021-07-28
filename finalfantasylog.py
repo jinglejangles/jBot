@@ -12,8 +12,9 @@ from aiohttp import BasicAuth
 import datetime
 from playerprofile import FFPlayerFight
 import logging
-import util.FFPlayer
-import util.FFReport
+from util.FFPlayer import FFPlayer
+from util.FFReport import FFReport
+import traceback
 
 
 class finalfantasylog(commands.Cog):
@@ -23,53 +24,28 @@ class finalfantasylog(commands.Cog):
 		self.tokenLink = 'https://www.fflogs.com/oauth/token'
 		self.authToken = ''
 
-	@commands.is_owner()
-	@commands.command(name="api",description="api get", brief="api get" \
-						,pass_context=True,hidden=True)
-	async def api(self,ctx):
-		if not self.authToken:
-			try:
-				self.authToken = await finalfantasylog.getAPITOKEN(self,ctx)
-			except Exception as e:
-				print(e)
-				return
-		print(self.authToken)
-		return
-
-
-	@commands.command(name="ff",description="fflogs get",brief="fflogs get" \
+	@commands.command(name="ff",description="fflogs get",brief="fflogs get" 
 					,pass_context=True)
-	async def ff(self,ctx,*args):
-		if not self.authToken:
-			try:
-				#logger.debug('No FFLOGS API token, attempting to retrieve')
-				self.authToken = await finalfantasylog.getAPITOKEN(self,ctx)
-			except Exception as e:
-				print(e)
-				await ctx.send("There was a problem getting the authorization \
-								token, try again later")
-				return
-		if len(args)>1:
+	async def ff(self,ctx,link,*args):
+		
+		if not link:
+			raise commands.errors.MissingRequiredArgument(link)
+		if len(args)>=1:
 			raise commands.errors.TooManyArguments()
-		if len(args)==0:
-			raise commands.errors.MissingRequiredArgument()
-		if not re.match("https?:\/\/([\w\d]+\.)?fflogs\.com",args[0]):
+		if not re.match("https?:\/\/([\w\d]+\.)?fflogs\.com",link):
+			print("bad link")
 			raise commands.errors.BadArgument()
-		fLink = URL(args[0])
+		fLink = URL(link)
 		r = ''
 		########################################################################
 		try:
 			if(fLink.raw_path.startswith("/character")):
-				print("character link")
 				data = await self.getProfileFromUrl(fLink.raw_path)
 				print(data)
-				print("HAHAH")
 				pembed = await self.characterEmbed(data)
 				await ctx.send(embed=pembed)
 				return
 			elif(fLink.raw_path.startswith("/reports")):
-				print("report path found")
-				print(type(fLink))
 				r = await self.buildReportFromURL(fLink)
 				await ctx.send(embed=await self.reportEmbed(r))
 				return
@@ -80,37 +56,38 @@ class finalfantasylog(commands.Cog):
 			await ctx.send(e)
 			return
 
+	@commands.is_owner()
+	@commands.command(name="api",description="api get", brief="api get" \
+						,pass_context=True,hidden=True)
+	@ff.before_invoke
+	async def api(self,ctx):
+		if not self.authToken:
+			try:
+				self.authToken = await finalfantasylog.getAPITOKEN(self,ctx)
+			except Exception as e:
+				print(e)
+				return
+		print(self.authToken)
+		return
+
+	async def poop(self,ctx):
+		print("poop")
+
 	@ff.error
 	async def ff_handler(self,ctx,error):
 		if isinstance(error, commands.errors.TooManyArguments):
 			await ctx.send(ctx.author.mention+ "Only one link please")
-		elif isinstance(error,commands.error.MissingRequiredArgument):
-			await ctx.send(ctx.author.mention+ "You forgot the link")
+		elif isinstance(error,commands.errors.MissingRequiredArgument):
+			await ctx.send(ctx.author.mention+ "You forgot the fflogs link")
 		elif isinstance(error,commands.errors.BadArgument):
-			await ctx.send(ctx.author.mention+
-						   "You didn't submit a fflogs.com link")
+			await ctx.send(ctx.author.mention+"You didn't submit a fflogs.com link")
 		else:
-			await ctx.send("Unhandled error caught, dm owner")
+			await ctx.send(ctx.author.mention+" dm owner")
 			
 	async def getAPITOKEN(self,ctx):
-			tokenResponse = await fetch_response(self.tokenLink,secret=fflogSecret,id=fflogID,type="POST")
-			print(tokenResponse)
-			try:
-				parsed_json = json.loads(tokenResponse)
-				if parsed_json['access_token']:
-					return parsed_json['access_token']
-				else:
-					raise Exception('API access token not found/imported.\
-									 Try again in a little bit')
-			except Exception as e:
-				print(e)
-				await ctx.send("json parse error, try again later")
-				return
-
-	"""async def getAPITOKEN2(self,ctx):
 			auth = BasicAuth(fflogID,fflogSecret)
 			params={'grant_type':'client_credentials'}
-			tokenResponse = await session1.post(self.tokenLink,auth=auth,data=params)
+			tokenResponse = await self.bot.session.post(self.tokenLink,auth=auth,data=params)
 			tokenResponse = await tokenResponse.text()
 			try:
 				parsed_json = json.loads(tokenResponse)
@@ -122,7 +99,7 @@ class finalfantasylog(commands.Cog):
 			except Exception as e:
 				print(e)
 				await ctx.send("JSON parse error, try again later")
-				return"""
+				return
 
 
 	async def buildReportFromURL(self,url):
