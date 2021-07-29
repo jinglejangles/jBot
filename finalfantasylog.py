@@ -24,10 +24,13 @@ class finalfantasylog(commands.Cog):
 		self.tokenLink = 'https://www.fflogs.com/oauth/token'
 		self.authToken = ''
 
-	@commands.command(name="ff",description="fflogs get",brief="fflogs get" 
-					,pass_context=True)
+	@commands.group(name="ff",description="fflogs get",brief="fflogs get" 
+					,pass_context=True,invoke_without_command=True)
 	async def ff(self,ctx,link,*args):
-		
+		"""
+
+
+		"""
 		if not link:
 			raise commands.errors.MissingRequiredArgument(link)
 		if len(args)>=1:
@@ -48,9 +51,10 @@ class finalfantasylog(commands.Cog):
 			elif(fLink.raw_path.startswith("/reports")):
 				r = await self.buildReportFromURL(fLink)
 				await ctx.send(embed=await self.reportEmbed(r))
-				return
+				return "hey"
 			else:
-				await ctx.send("Something has gone horribly wrong or your link is bad, message owner")
+				await ctx.send("Something has gone horribly wrong "
+							   "or your link is bad, message owner")
 		except Exception as e:
 			print(e)
 			await ctx.send(e)
@@ -75,6 +79,7 @@ class finalfantasylog(commands.Cog):
 
 	@ff.error
 	async def ff_handler(self,ctx,error):
+		print("hello")
 		if isinstance(error, commands.errors.TooManyArguments):
 			await ctx.send(ctx.author.mention+ "Only one link please")
 		elif isinstance(error,commands.errors.MissingRequiredArgument):
@@ -83,7 +88,33 @@ class finalfantasylog(commands.Cog):
 			await ctx.send(ctx.author.mention+"You didn't submit a fflogs.com link")
 		else:
 			await ctx.send(ctx.author.mention+" dm owner")
-			
+
+	@ff.command()
+	async def channel(self,ctx,mention):
+		if ctx.message.mentions:
+			raise commands.errors.BadArgument()
+		#TODO CHANGE TO REGEX
+		c = mention[2:-1] 
+		print(c)
+		channel = ctx.guild.get_channel(int(c))
+		print(channel)
+		if channel is None:
+			raise commands.errors.MissingRequiredArgument(channel)
+		elif not isinstance(channel, discord.TextChannel):
+			print("not a text channel")
+			raise commands.erorrs.BadArgument()
+		print("success?")
+		#add or remove channel from auto convert fflogs link
+
+	@channel.error
+	async def ff_channel_handler(self,ctx,error):
+		if isinstance(error, commands.errors.MissingRequiredArgument):
+			await ctx.send(ctx.author.mention+" You didn't mention a text channel")
+		elif isinstance(error,commands.errors.BadArgument):
+			await ctx.send(ctx.author.mention+ "You didnt mention a text channel")
+		else:
+			await ctx.send(ctx.author.mention+ " Unhandled error, report to owner")
+
 	async def getAPITOKEN(self,ctx):
 			auth = BasicAuth(fflogID,fflogSecret)
 			params={'grant_type':'client_credentials'}

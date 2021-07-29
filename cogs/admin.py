@@ -1,12 +1,8 @@
 import aiohttp
-import async_timeout
 import asyncio
 import random
 import discord
-import json
-from jangle_utils import fetch_response
 from discord.ext import commands
-from discord.ext.commands import Bot
 import traceback
 
 
@@ -52,6 +48,6 @@ class admin(commands.Cog):
         else:
             await context.send("reloaded")
 
-
 def setup(bot):
     bot.add_cog(admin(bot))
+
