@@ -23,6 +23,7 @@ class finalfantasylog(commands.Cog):
 		self.endpointLink = 'https://www.fflogs.com/api/v2/client'
 		self.tokenLink = 'https://www.fflogs.com/oauth/token'
 		self.authToken = ''
+		self.channel_cache = {}
 
 	@commands.group(name="ff",description="fflogs get",brief="fflogs get" 
 					,pass_context=True,invoke_without_command=True)
@@ -36,15 +37,13 @@ class finalfantasylog(commands.Cog):
 		if len(args)>=1:
 			raise commands.errors.TooManyArguments()
 		if not re.match("https?:\/\/([\w\d]+\.)?fflogs\.com",link):
-			print("bad link")
 			raise commands.errors.BadArgument()
 		fLink = URL(link)
 		r = ''
 		########################################################################
 		try:
 			if(fLink.raw_path.startswith("/character")):
-				data = await self.getProfileFromUrl(fLink.raw_path)
-				print(data)
+				data = await self.getProfileFromURL(fLink.raw_path)
 				pembed = await self.characterEmbed(data)
 				await ctx.send(embed=pembed)
 				return
@@ -53,7 +52,7 @@ class finalfantasylog(commands.Cog):
 				await ctx.send(embed=await self.reportEmbed(r))
 				return "hey"
 			else:
-				await ctx.send("Something has gone horribly wrong "
+				await ctx.send("Something may be wrong "
 							   "or your link is bad, message owner")
 		except Exception as e:
 			print(e)
@@ -67,15 +66,12 @@ class finalfantasylog(commands.Cog):
 	async def api(self,ctx):
 		if not self.authToken:
 			try:
-				self.authToken = await finalfantasylog.getAPITOKEN(self,ctx)
+				self.authToken = await self.getAPITOKEN(ctx)
 			except Exception as e:
 				print(e)
 				return
 		print(self.authToken)
 		return
-
-	async def poop(self,ctx):
-		print("poop")
 
 	@ff.error
 	async def ff_handler(self,ctx,error):
@@ -87,33 +83,36 @@ class finalfantasylog(commands.Cog):
 		elif isinstance(error,commands.errors.BadArgument):
 			await ctx.send(ctx.author.mention+"You didn't submit a fflogs.com link")
 		else:
-			await ctx.send(ctx.author.mention+" dm owner")
+			await ctx.send(ctx.author.mention+"Unhandled error, try again")
 
 	@ff.command()
 	async def channel(self,ctx,mention):
-		if ctx.message.mentions:
+		if mention is None:
 			raise commands.errors.BadArgument()
-		#TODO CHANGE TO REGEX
-		c = mention[2:-1] 
-		print(c)
-		channel = ctx.guild.get_channel(int(c))
-		print(channel)
-		if channel is None:
-			raise commands.errors.MissingRequiredArgument(channel)
-		elif not isinstance(channel, discord.TextChannel):
-			print("not a text channel")
+
+		if not re.match("<#\d{0,32}>",mention):
+			raise commands.errors.BadArgument()
+
+		channel = ctx.guild.get_channel(int(mention[2:-1]))
+		if not isinstance(channel, discord.TextChannel):
 			raise commands.erorrs.BadArgument()
-		print("success?")
-		#add or remove channel from auto convert fflogs link
+		
+		#add or remove channel from auto convert fflogs link cache
+		await self.add_remove_channel(ctx,channel)
+		print("done")
+
+	async def add_remove_channel(self, ctx, channel):
+		if self.channel_cache.get(channel.id) is None:
+			self.channel_cache[channel.id]=1
+		else:
+			del self.channel_cache[channel.id]
 
 	@channel.error
 	async def ff_channel_handler(self,ctx,error):
-		if isinstance(error, commands.errors.MissingRequiredArgument):
-			await ctx.send(ctx.author.mention+" You didn't mention a text channel")
-		elif isinstance(error,commands.errors.BadArgument):
+		if isinstance(error,commands.errors.BadArgument):
 			await ctx.send(ctx.author.mention+ "You didnt mention a text channel")
 		else:
-			await ctx.send(ctx.author.mention+ " Unhandled error, report to owner")
+			await ctx.send(ctx.author.mention+ str(error))
 
 	async def getAPITOKEN(self,ctx):
 			auth = BasicAuth(fflogID,fflogSecret)
@@ -139,21 +138,25 @@ class finalfantasylog(commands.Cog):
 		reportURL = url
 		reportPath = reportURL.path
 		frags = reportURL.fragment
+
 		print("Frags: "+frags)
 		print("report path: "+reportPath)
-		reportID = ''
 
-		if re.match("\/reports\/[a-zA-Z0-9]{16,16}",reportPath):
-			print("match")
-			reportID = reportPath[-16:]
-		
+		if not re.match("\/reports\/[a-zA-Z0-9]{16,16}",reportPath):
+			print("error")
+			raise Exception("Malformed report ID")
+			
+		reportID = reportPath[-16:]
+		#TODO BASE REPORT PAGE
 		print("Report id: "+reportID)
 		if frags == '':
-			raise ValueError("You sent a base report page, please link a \
-							 single fight")
+			raise ValueError("You sent a base report page, please link a "
+							 "single fight")
 			jsonResponse = await self.getFFLOGSREPORTPAGE(reportID)
+			#TODO TRIM BASE REPORT PAGE
+			#TODO BUILD EMBED BASE REPORT PAGE
+			#SEND EMBED
 			return
-
 
 		try:
 			print("trying to split")
@@ -161,29 +164,24 @@ class finalfantasylog(commands.Cog):
 		except Exception as e:
 			raise Exception('Malformed Link: make sure the link is a valid \
 							report/fight')
-			#return
 
 		print("fragments: "+frags)
-		#try:
-		#	splitData = splitData.split()
-		#except Exception as e:
-		#	print("huh {}".format(e))
-		if splitData is not None:
-			print("split data: "+str(splitData))
+
 		if splitData is None:
 			print("shit")
 			raise Exception("You sent the base report page, please link a single fight from your report(This might change in the future :-).")
 			return
 
-		if splitData.get('fight').isdigit(): fightID = splitData.get('fight')
-		
 		if splitData.get('fight')=="last":#fightID = "last"
 			print("In last")
+			#fightID = await self.getLastFight(reportID)
 			raise Exception("Last fightID currently not supported, yell at jangles to fix it")
 			return
-
-		print("report path: "+reportPath)
-		
+		elif splitData.get('fight').isdigit():
+			fightID = splitData.get('fight')
+		else:
+			raise Exception("Bad fightID for report given, fix link")
+			
 		jsonResponse = await self.getFFLOGSLINKDATA(reportID,fightID=fightID)
 		print("going to trim")
 		trimmed_data = await self.trimReportResponse(jsonResponse)
@@ -319,14 +317,14 @@ class finalfantasylog(commands.Cog):
 			dataDict[key] = value
 		return dataDict
 
-	async def getProfileFromUrl(self,url):
+	async def getProfileFromURL(self,url):
 		if re.match("\/character\/[nej][aup]\/[a-zA-Z]{5,16}\/[a-zA-z']{1,15}%20[a-zA-Z']{1,15}",url):
 			print(re.match("\/character\/[nej][aup]\/[a-zA-Z]{5,16}\/[a-zA-z']{1,15}%20[a-zA-Z']{1,15}",url))
 		characterInfo = url[11::].split('/')
 		region,server,name = characterInfo[0],characterInfo[1],characterInfo[2]
 		query = profileQuery.replace("""INSERT CHARACTER""",name) \
 			.replace("""INSERT SERVER""",server).replace("""INSERT REGION""",region)
-		print("QUERY COMPAIRE")
+		print("QUERY COMPARE")
 		r = await self.buildQueryURL(query,"profile")
 		data = await self.trimCharacterResponse(r)
 		return data
