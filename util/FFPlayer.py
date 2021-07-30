@@ -8,7 +8,7 @@ class FFPlayer():
         self.dps = dps
         self.percentile = percentile
         self.shorthand = jobList.get(self.job, None)
-        self.playerID = playerID
+        self.player_id = playerID
 
     def __str__(self):
         return str(self.percentile) + ":" + self.job + ":" + self.name + ":" 

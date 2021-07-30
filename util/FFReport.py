@@ -5,16 +5,16 @@ class FFReport():
     def __init__(self, charList, healCombinedDamage, tankCombinedDamage,
                  healPercent, tankPercent, fightName, encounterID, duration,
                  code, fightID):
-        self.charList = charList
-        self.healCombinedDamage = healCombinedDamage
-        self.healPercentile = healPercent
-        self.tankCombinedDamage = tankCombinedDamage
-        self.tankPercentile = tankPercent
-        self.fightName = fightName
-        self.fightIcon = imageurl+str(encounterID)+"-icon.jpg"
+        self.char_list = charList
+        self.heal_combinedDamage = healCombinedDamage
+        self.heal_percentile = healPercent
+        self.tank_combinedDamage = tankCombinedDamage
+        self.tank_percentile = tankPercent
+        self.fight_name = fightName
+        self.fight_icon = imageurl+str(encounterID)+"-icon.jpg"
         self.duration = duration
         self.code = code
-        self.fightID = fightID
+        self.fight_id = fightID
         self.link = fflogslink+str(code)+"#fight="+str(fightID)+"&type=summary"
 
     def __str__(self):
